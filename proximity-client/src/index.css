@@ -1,0 +1,97 @@
+/* Import Inter from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* The new Tailwind v4 import */
+@import "tailwindcss";
+
+/* Define the custom theme colors so Claude's classes work */
+@theme {
+  --color-radar-bg: #0b0f19;
+  --color-radar-surface: #111827;
+  --color-radar-elevated: #1f2937;
+  --color-radar-border: #374151;
+  --color-radar-ring: #4b5563;
+  
+  --color-beacon: #00f5c4;
+  --color-beacon-dim: #00e0b2;
+  
+  --font-sans: 'Inter', sans-serif;
+}
+
+/* ── Base resets ──────────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    @apply bg-radar-bg text-white font-sans antialiased;
+    overscroll-behavior: none;
+  }
+
+  ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { @apply bg-radar-surface; }
+  ::-webkit-scrollbar-thumb  { @apply bg-radar-border rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-radar-ring; }
+}
+
+/* ── Reusable component classes ──────────────────────────────────────────── */
+@layer components {
+  .card {
+    @apply bg-radar-surface border border-radar-border rounded-2xl;
+  }
+
+  .card-elevated {
+    /* Changed custom shadow-card to standard shadow-lg */
+    @apply bg-radar-elevated border border-radar-border rounded-2xl shadow-lg;
+  }
+
+  .btn-primary {
+    @apply bg-beacon text-radar-bg font-semibold px-4 py-2 rounded-xl
+           hover:bg-beacon-dim active:scale-95
+           transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply border border-radar-border text-white/70 font-medium px-4 py-2 rounded-xl
+           hover:border-beacon hover:text-beacon
+           transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .input {
+    @apply w-full bg-radar-elevated border border-radar-border rounded-xl
+           px-4 py-2.5 text-white placeholder-white/30
+           focus:outline-none focus:border-beacon focus:ring-1 focus:ring-beacon
+           transition-colors duration-150;
+  }
+
+  .badge {
+    @apply text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+}
+
+/* ── Radar-specific utilities ────────────────────────────────────────────── */
+@layer utilities {
+  .radar-sweep-gradient {
+    background: conic-gradient(
+      from 0deg,
+      transparent 270deg,
+      rgba(0, 245, 196, 0.08) 290deg,
+      rgba(0, 245, 196, 0.35) 360deg
+    );
+  }
+
+  .glow-beacon {
+    box-shadow: 0 0 8px rgba(0, 245, 196, 0.6),
+                0 0 20px rgba(0, 245, 196, 0.2);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #00f5c4, #818cf8);
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "Proximity — Find People Nearby",
+  "short_name": "Proximity",
+  "description": "Real-time proximity networking for events and campuses",
+  "theme_color": "#050d1a",
+  "background_color": "#050d1a",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/radar",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open Radar",
+      "short_name": "Radar",
+      "url": "/radar",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Inbox",
+      "short_name": "Inbox",
+      "url": "/radar?inbox=1",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
