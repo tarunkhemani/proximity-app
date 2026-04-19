@@ -141,24 +141,24 @@ export default defineConfig({
     // Warn if any chunk exceeds 500kb
     chunkSizeWarningLimit: 500,
 
-    rollupOptions: {
-      output: {
-        // Manual chunk splitting prevents a single giant bundle.
-        // Each key becomes a separate file that browsers can cache independently.
-        manualChunks: {
-          // React core — rarely changes, long cache lifetime
-          'vendor-react':  ['react', 'react-dom'],
-          // Router
-          'vendor-router': ['react-router-dom'],
-          // Socket.io client — split so it doesn't bloat the main bundle
-          'vendor-socket': ['socket.io-client'],
-          // Animation library
-          'vendor-motion': ['framer-motion'],
-          // UI utilities
-          'vendor-ui':     ['lucide-react', 'react-hot-toast', 'axios'],
-        },
-      },
-    },
+    // rollupOptions: {
+    //   output: {
+    //     // Manual chunk splitting prevents a single giant bundle.
+    //     // Each key becomes a separate file that browsers can cache independently.
+    //     manualChunks: {
+    //       // React core — rarely changes, long cache lifetime
+    //       'vendor-react':  ['react', 'react-dom'],
+    //       // Router
+    //       'vendor-router': ['react-router-dom'],
+    //       // Socket.io client — split so it doesn't bloat the main bundle
+    //       'vendor-socket': ['socket.io-client'],
+    //       // Animation library
+    //       'vendor-motion': ['framer-motion'],
+    //       // UI utilities
+    //       'vendor-ui':     ['lucide-react', 'react-hot-toast', 'axios'],
+    //     },
+    //   },
+    // },
   },
 });
 // import { defineConfig } from 'vite'
