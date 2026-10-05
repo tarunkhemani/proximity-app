@@ -211,20 +211,6 @@ Other scripts: `npm run build` (production build), `npm run preview`, `npm run l
 - Secrets are read from environment variables; `.env` files are git-ignored and only
   `.env.example` files are committed.
 
-## Known limitations
-
-- **Cross-site refresh cookie.** The refresh cookie uses `SameSite=Strict`. With the frontend
-  (Vercel) and API (Render) on different sites, browsers may not store it, so silent token
-  refresh may not work in production. This is currently masked by the long default access-token
-  lifetime (7 days). A fix is to use `SameSite=None; Secure` or to serve both under one domain.
-- **Fixed campus zones.** Zone labels and centroids are hard-coded for one campus.
-- **Beacon timers are in-process.** Expiry timers live in server memory; visibility is still
-  enforced by the database query if a timer is lost, but timers are not shared between instances.
-- **Location polling.** Updates are sent every 15 s regardless of movement (the minimum-movement
-  threshold is set to 0 for development).
-- **No automated tests yet.** The `npm run lint` output also reports a few React Hooks
-  compiler-rule warnings that have not been refactored.
-- **Free-tier hosting.** Cold starts on the API can delay the first request.
 
 ## Roadmap
 
