@@ -10,10 +10,6 @@ const router = express.Router();
 // All message routes require authentication
 router.use(authenticateToken);
 
-// ── GET /api/messages/inbox ────────────────────────────────────────────────────
-// Returns the authenticated user's conversation list — one entry per unique
-// room, showing the latest message and unread count.
-// Used by the radar page sidebar / conversation list.
 router.get('/inbox', async (req, res) => {
   try {
     const userId = req.user._id;
@@ -79,9 +75,6 @@ router.get('/inbox', async (req, res) => {
             {
               $match: {
                 $expr: {
-                  // The other participant's ID is embedded in the roomId string.
-                  // We fetch both participants and filter out self in application code
-                  // because MongoDB can't do string splitting in $expr cleanly.
                   $and: [
                     { $ne: ['$_id', '$$myId'] },
                   ],
@@ -103,9 +96,6 @@ router.get('/inbox', async (req, res) => {
       },
     ]);
 
-    // Resolve the other participant per conversation in application code.
-    // (The $lookup above fetches all users — we pick the right one by checking
-    // whose ObjectId string appears in the roomId.)
     const result = await Promise.all(
       conversations.map(async (conv) => {
         const roomId = conv._id;
@@ -139,7 +129,6 @@ router.get('/inbox', async (req, res) => {
   }
 });
 
-// ── GET /api/messages/:roomId ─────────────────────────────────────────────────
 // Returns paginated message history for a specific room.
 // Uses cursor-based pagination — pass ?before=<messageId> to load older messages.
 router.get('/:roomId', async (req, res) => {
@@ -148,12 +137,10 @@ router.get('/:roomId', async (req, res) => {
     const { before, limit = 30 } = req.query;
     const userId        = req.user._id;
 
-    // ── Validate roomId format ──────────────────────────────────────────────
     if (!/^[a-f0-9]{24}_[a-f0-9]{24}$/.test(roomId)) {
       return res.status(400).json({ error: 'Invalid roomId format.' });
     }
 
-    // ── Authorisation: requester must be a participant ──────────────────────
     const participantIds = roomId.split('_');
     if (!participantIds.includes(userId.toString())) {
       return res.status(403).json({ error: 'You are not a participant of this conversation.' });
@@ -200,7 +187,6 @@ router.get('/:roomId', async (req, res) => {
   }
 });
 
-// ── DELETE /api/messages/:roomId ──────────────────────────────────────────────
 // Soft-delete all messages from this user's perspective.
 // The conversation remains visible to the other participant.
 router.delete('/:roomId', async (req, res) => {

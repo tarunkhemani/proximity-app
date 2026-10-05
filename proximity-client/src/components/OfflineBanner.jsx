@@ -2,10 +2,6 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WifiOff, Wifi } from 'lucide-react';
 
-// ── useOnlineStatus ────────────────────────────────────────────────────────────
-// Tracks browser online/offline state using the navigator.onLine API and the
-// online/offline window events. Works reliably on mobile (airplane mode,
-// dropping from wifi to no signal).
 function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -25,7 +21,6 @@ function useOnlineStatus() {
   return isOnline;
 }
 
-// ── OfflineBanner ──────────────────────────────────────────────────────────────
 // Renders a banner at the very top of the viewport when the device is offline.
 // Also shows a brief "back online" confirmation when connectivity is restored.
 export default function OfflineBanner() {

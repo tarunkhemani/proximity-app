@@ -1,15 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
-// ── authenticateToken ──────────────────────────────────────────────────────────
-// Express middleware that verifies the Bearer JWT on protected REST routes.
-// Attaches the lean user document to req.user so route handlers don't need
-// to hit the DB again for basic identity checks.
-//
-// Usage:
-//   router.get('/protected', authenticateToken, (req, res) => {
-//     res.json({ userId: req.user._id });
-//   });
 export async function authenticateToken(req, res, next) {
   try {
     const header = req.headers.authorization;

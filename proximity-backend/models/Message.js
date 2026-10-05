@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 
-// ── Message types ─────────────────────────────────────────────────────────────
 // Discriminated via the `type` field so the frontend can render each variant
 // with a different UI component without parsing content strings.
 export const MESSAGE_TYPES = {
@@ -13,18 +12,6 @@ export const MESSAGE_TYPES = {
 
 const MessageSchema = new mongoose.Schema(
   {
-    // ── Room identification ───────────────────────────────────────────────────
-    // roomId is a deterministic string built from the two participants' user IDs,
-    // sorted lexicographically and joined with '_'. Sorting guarantees that
-    // User A ↔ User B and User B ↔ User A always produce the same room ID
-    // regardless of who initiated the conversation.
-    //
-    // Construction (done in the socket handler and service layer):
-    //   const roomId = [userId1.toString(), userId2.toString()].sort().join('_');
-    //
-    // This approach avoids a separate "Conversation" or "Room" collection for
-    // 1-to-1 chats. If you later add group chat, introduce a separate Room model
-    // and store its ObjectId here instead.
     roomId: {
       type: String,
       required: [true, 'roomId is required'],
@@ -36,23 +23,18 @@ const MessageSchema = new mongoose.Schema(
       },
     },
 
-    // ── Participants ──────────────────────────────────────────────────────────
     senderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'senderId is required'],
     },
 
-    // recipientId: stored explicitly (not just inferred from roomId) so we can
-    // efficiently query "all messages sent to user X" for an inbox view without
-    // parsing every roomId in the collection.
     recipientId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'recipientId is required'],
     },
 
-    // ── Content ───────────────────────────────────────────────────────────────
     content: {
       type: String,
       trim: true,
@@ -70,10 +52,6 @@ const MessageSchema = new mongoose.Schema(
       default: MESSAGE_TYPES.TEXT,
     },
 
-    // ── Delivery / read state ─────────────────────────────────────────────────
-    // delivered: set to true when the message reaches the recipient's socket.
-    // false means the recipient was offline at send time — shown as a pending
-    // indicator in the UI until they reconnect and pull chat history.
     delivered: {
       type: Boolean,
       default: false,
@@ -86,11 +64,6 @@ const MessageSchema = new mongoose.Schema(
       default: null,
     },
 
-    // ── Soft delete ───────────────────────────────────────────────────────────
-    // deletedAt: set when a user "deletes" a message on their side.
-    // We use soft delete so the other participant still sees the message
-    // (or a "This message was deleted" placeholder, depending on your UX).
-    // Hard deletes are only run by a scheduled cleanup job after both sides delete.
     deletedBySender: {
       type: Boolean,
       default: false,
@@ -100,10 +73,6 @@ const MessageSchema = new mongoose.Schema(
       default: false,
     },
 
-    // ── Proximity context ─────────────────────────────────────────────────────
-    // The zone where both users were when the first message was sent.
-    // Purely for UX/nostalgia ("You first connected in the Hackathon Hall").
-    // Stored only on the first message in a conversation (connect_request type).
     meetZone: {
       type: String,
       default: null,
@@ -121,8 +90,6 @@ const MessageSchema = new mongoose.Schema(
   }
 );
 
-// ── Indexes ───────────────────────────────────────────────────────────────────
-
 // Primary query pattern: "give me the last N messages in room X, newest first"
 // This is hit on every chat open and on pagination scroll — must be fast.
 MessageSchema.index({ roomId: 1, createdAt: -1 });
@@ -134,17 +101,12 @@ MessageSchema.index({ recipientId: 1, readAt: 1, createdAt: -1 });
 // Sender history: "give me all conversations this user initiated"
 MessageSchema.index({ senderId: 1, createdAt: -1 });
 
-// ── Static helpers ────────────────────────────────────────────────────────────
-
 // buildRoomId: the canonical way to construct a roomId anywhere in the codebase.
 // Import this function instead of recreating the sort logic inline.
 MessageSchema.statics.buildRoomId = function (userIdA, userIdB) {
   return [userIdA.toString(), userIdB.toString()].sort().join('_');
 };
 
-// getConversationHistory: paginated message fetch for a given room.
-// cursor-based pagination (using a message _id as the cursor) scales better
-// than offset-based pagination for chat history which grows indefinitely.
 MessageSchema.statics.getConversationHistory = async function ({
   roomId,
   limit = 30,

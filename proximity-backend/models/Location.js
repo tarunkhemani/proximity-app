@@ -1,14 +1,5 @@
 import mongoose from 'mongoose';
 
-// ── Fuzzy zone definitions ────────────────────────────────────────────────────
-// These are the human-readable zone labels shown to nearby users.
-// Crucially, these are derived SERVER-SIDE by snapping the user's raw GPS
-// coordinate to the nearest zone centroid — the client never receives or
-// stores raw coordinates of other users.
-//
-// Extend this list to match your specific venue (campus map, conference floor
-// plan, etc.). The centroid coordinates here are examples — replace them with
-// your actual venue's coordinates.
 export const FUZZY_ZONES = {
   CS_BLOCK: {
     label: 'CS Block',
@@ -47,7 +38,6 @@ export const FUZZY_ZONES = {
 
 export const VALID_ZONE_LABELS = Object.values(FUZZY_ZONES).map((z) => z.label);
 
-// ── Schema ────────────────────────────────────────────────────────────────────
 const LocationSchema = new mongoose.Schema(
   {
     userId: {
@@ -57,19 +47,6 @@ const LocationSchema = new mongoose.Schema(
       // One location document per user — enforced by the unique index below
     },
 
-    // ── GeoJSON Point ─────────────────────────────────────────────────────────
-    // MongoDB requires this EXACT nested structure for 2dsphere indexing.
-    //
-    // ⚠️  COORDINATE ORDER: MongoDB GeoJSON is [longitude, latitude] — the
-    //     reverse of what most people expect from GPS. This is the single most
-    //     common source of silent bugs in geospatial apps. The 2dsphere index
-    //     will accept either order but your $near queries will return wrong
-    //     results if you accidentally swap them.
-    //
-    //     Example — Meerut, UP, India:
-    //       Latitude:  28.9845° N  → second element
-    //       Longitude: 77.7064° E  → first element
-    //       Stored as: [77.7064, 28.9845] ✓
     coordinates: {
       type: {
         type: String,
@@ -103,7 +80,6 @@ const LocationSchema = new mongoose.Schema(
       },
     },
 
-    // ── Fuzzy zone label ──────────────────────────────────────────────────────
     // The zone string derived from the user's GPS coordinate.
     // This is what other users see — never the raw GPS coordinate.
     zone: {
@@ -115,32 +91,12 @@ const LocationSchema = new mongoose.Schema(
       },
     },
 
-    // ── Accuracy metadata ─────────────────────────────────────────────────────
-    // GPS accuracy in metres reported by the browser/device.
-    // Stored for analytics — not exposed to other users.
-    // High values (>50m) indicate unreliable indoor GPS and can be used to
-    // switch to a fallback (WiFi positioning, manual zone selection).
     accuracy: {
       type: Number,
       default: null,
       min: [0, 'Accuracy cannot be negative'],
     },
 
-    // ── TTL / expiry field ────────────────────────────────────────────────────
-    // updatedAt drives two critical behaviours:
-    //
-    // 1. TTL index (120 seconds): MongoDB automatically deletes this document
-    //    when updatedAt is more than 120 seconds old. This handles the case
-    //    where a user closes the app without explicitly stopping their beacon —
-    //    their location document simply disappears from the collection.
-    //    Consequence: clients MUST emit location:update at least every 90s to
-    //    keep their document alive (we use 15s in the socket handler, so there
-    //    is comfortable headroom).
-    //
-    // 2. Query filter in $geoNear: the aggregation pipeline filters
-    //    updatedAt >= (now - 90s) to exclude stale documents that haven't been
-    //    cleaned up by the TTL index yet (TTL scans run every ~60 seconds,
-    //    so there is a window where a stale document may still exist).
     updatedAt: {
       type: Date,
       default: Date.now,
@@ -158,23 +114,8 @@ const LocationSchema = new mongoose.Schema(
   }
 );
 
-// ── Indexes ───────────────────────────────────────────────────────────────────
-
-// 2dsphere index — MANDATORY for $geoNear, $near, $geoWithin to function.
-// Must be on the field holding the GeoJSON object, not on the nested
-// coordinates array. MongoDB traverses the GeoJSON structure automatically.
-// LocationSchema.index({ coordinates: '2dsphere' });
-
-// One location document per user — prevents duplicate rows on rapid updates.
-// findOneAndUpdate with { upsert: true } relies on this to update-in-place
-// rather than inserting a second document.
 LocationSchema.index({ userId: 1 }, { unique: true });
 
-// TTL index — MongoDB deletes documents where updatedAt is older than 120 seconds.
-// The TTL background task runs approximately every 60 seconds, so actual
-// deletion may lag by up to 60s. The query-side cutoff (90s) compensates for this.
-// expireAfterSeconds: 0 combined with updatedAt as the field means the document
-// expires AT the time stored in updatedAt + 120s.
 LocationSchema.index(
   { updatedAt: 1 },
   {
@@ -183,22 +124,8 @@ LocationSchema.index(
   }
 );
 
-// Compound index for the $geoNear pipeline's internal sort + filter.
-// Including updatedAt here lets MongoDB satisfy both the geospatial filter
-// and the staleness check from a single index scan.
 LocationSchema.index({ coordinates: '2dsphere', updatedAt: -1 });
 
-// ── Static helpers ────────────────────────────────────────────────────────────
-
-// snapToZone: given a raw [longitude, latitude] pair, returns the label of
-// the nearest predefined fuzzy zone using the Haversine approximation.
-//
-// This runs SERVER-SIDE on every location:update event so:
-//   a) clients cannot self-report a false zone
-//   b) raw GPS coordinates are never stored in the zone field
-//
-// For a real deployment you would expand FUZZY_ZONES with your venue's
-// actual zone centroids surveyed from Google Maps / a site walkthrough.
 LocationSchema.statics.snapToZone = function (longitude, latitude) {
   let nearestZone = null;
   let minDistance = Infinity;
@@ -220,9 +147,6 @@ LocationSchema.statics.snapToZone = function (longitude, latitude) {
   return nearestZone; // always returns something — falls back to closest zone
 };
 
-// upsertLocation: the single write path for location updates.
-// Always use this instead of raw .findOneAndUpdate() calls so the zone
-// snapping and field normalisation happen consistently.
 LocationSchema.statics.upsertLocation = async function ({ userId, longitude, latitude, accuracy }) {
   const zone = this.snapToZone(longitude, latitude);
   const now = new Date();

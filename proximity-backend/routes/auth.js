@@ -7,7 +7,6 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-// ── Auth-specific rate limiters ───────────────────────────────────────────────
 // Tighter than the global API limiter — auth endpoints are the primary target
 // for credential stuffing and brute-force attacks.
 
@@ -28,8 +27,6 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many login attempts. Please wait 15 minutes.' },
 });
-
-// ── Token helpers ─────────────────────────────────────────────────────────────
 
 function signAccessToken(userId) {
   return jwt.sign(
@@ -73,12 +70,10 @@ function buildPublicUser(userDoc) {
   };
 }
 
-// ── POST /api/auth/register ───────────────────────────────────────────────────
 router.post('/register', registerLimiter, async (req, res) => {
   try {
     const { name, email, password, bio = '', tags = [] } = req.body;
 
-    // ── Field-level validation ────────────────────────────────────────────────
     const errors = {};
 
     if (!name || typeof name !== 'string' || name.trim().length < 2) {
@@ -102,7 +97,6 @@ router.post('/register', registerLimiter, async (req, res) => {
       return res.status(422).json({ error: 'Validation failed', fields: errors });
     }
 
-    // ── Duplicate email check ─────────────────────────────────────────────────
     // Check before attempting to save so we can return a clean error instead of
     // letting Mongoose throw an E11000 duplicate key error from the unique index.
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() }).lean();
@@ -113,7 +107,6 @@ router.post('/register', registerLimiter, async (req, res) => {
       });
     }
 
-    // ── Create user ───────────────────────────────────────────────────────────
     // Password hashing is handled by the pre-save hook in User.js (bcrypt, 12 rounds).
     const user = await User.create({
       name:     name.trim(),
@@ -123,7 +116,6 @@ router.post('/register', registerLimiter, async (req, res) => {
       tags:     tags.map(String).slice(0, 10),
     });
 
-    // ── Issue tokens ──────────────────────────────────────────────────────────
     const accessToken  = signAccessToken(user._id);
     const refreshToken = signRefreshToken(user._id);
 
@@ -133,7 +125,6 @@ router.post('/register', registerLimiter, async (req, res) => {
     const hashedRefresh = await bcrypt.hash(refreshToken, 10);
     await User.findByIdAndUpdate(user._id, { refreshToken: hashedRefresh });
 
-    // ── Set refresh token in httpOnly cookie ──────────────────────────────────
     // HttpOnly + Secure + SameSite=Strict means JS cannot read this cookie,
     // which protects against XSS token theft.
     res.cookie('refresh_token', refreshToken, {
@@ -143,8 +134,6 @@ router.post('/register', registerLimiter, async (req, res) => {
       maxAge:   30 * 24 * 60 * 60 * 1000, // 30 days in ms
       path:     '/api/auth',               // only sent to auth endpoints
     });
-
-    console.log(`[auth] New user registered: ${user.email} (${user._id})`);
 
     return res.status(201).json({
       message:     'Account created successfully.',
@@ -164,17 +153,14 @@ router.post('/register', registerLimiter, async (req, res) => {
   }
 });
 
-// ── POST /api/auth/login ──────────────────────────────────────────────────────
 router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // ── Basic presence check ──────────────────────────────────────────────────
     if (!email || !password) {
       return res.status(422).json({ error: 'Email and password are required.' });
     }
 
-    // ── Fetch user with password (select:false by default) ────────────────────
     const user = await User.findByEmail(email); // defined as a static in User.js
 
     // Use a constant-time comparison path regardless of whether the user exists.
@@ -193,7 +179,6 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(403).json({ error: 'Your account has been deactivated. Please contact support.' });
     }
 
-    // ── Issue tokens ──────────────────────────────────────────────────────────
     const accessToken  = signAccessToken(user._id);
     const refreshToken = signRefreshToken(user._id);
 
@@ -214,8 +199,6 @@ router.post('/login', loginLimiter, async (req, res) => {
       path:     '/api/auth',
     });
 
-    console.log(`[auth] Login: ${user.email} (${user._id})`);
-
     return res.status(200).json({
       message:     'Logged in successfully.',
       accessToken,
@@ -227,7 +210,6 @@ router.post('/login', loginLimiter, async (req, res) => {
   }
 });
 
-// ── POST /api/auth/refresh ────────────────────────────────────────────────────
 // Issues a new access token using the httpOnly refresh token cookie.
 // Called automatically by the axios interceptor in api.js when a 401 is received.
 router.post('/refresh', async (req, res) => {
@@ -285,7 +267,6 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
-// ── POST /api/auth/logout ─────────────────────────────────────────────────────
 router.post('/logout', async (req, res) => {
   try {
     const token = req.cookies?.refresh_token;
@@ -318,7 +299,6 @@ router.post('/logout', async (req, res) => {
   }
 });
 
-// ── GET /api/auth/me ──────────────────────────────────────────────────────────
 // Returns the currently authenticated user's profile.
 // Used by the frontend on app load to re-hydrate the auth context from a stored token.
 router.get('/me', async (req, res) => {

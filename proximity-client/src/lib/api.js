@@ -2,7 +2,6 @@ import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// ── Axios instance ─────────────────────────────────────────────────────────
 const api = axios.create({
   baseURL:         BASE_URL,
   timeout:         10_000,
@@ -12,12 +11,8 @@ const api = axios.create({
   },
 });
 
-// ── Request interceptor — attach access token ──────────────────────────────
 api.interceptors.request.use(
   (config) => {
-    // Read the latest token from localStorage on every request.
-    // This ensures a freshly refreshed token is used without needing to
-    // re-configure the axios instance.
     const token = localStorage.getItem('proximity_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -27,7 +22,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ── Response interceptor — handle 401 with token refresh ──────────────────
 // Tracks whether a refresh is already in flight to prevent multiple
 // simultaneous refresh calls when several requests 401 at the same time.
 let isRefreshing    = false;

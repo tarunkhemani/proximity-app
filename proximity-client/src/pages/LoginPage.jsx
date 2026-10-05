@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Radio, Loader2, AlertCircle, User, Mail, Lock, Tag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-// ── Animation variants ────────────────────────────────────────────────────────
 const formVariants = {
   hidden:  { opacity: 0, x: 40 },
   visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: 'easeOut' } },
@@ -19,8 +18,6 @@ const fieldVariants = {
     transition: { delay: i * 0.07, duration: 0.3, ease: 'easeOut' },
   }),
 };
-
-// ── Sub-components ────────────────────────────────────────────────────────────
 
 function InputField({
   id,
@@ -93,7 +90,7 @@ function TagInput({ tags, onChange }) {
   const [inputValue, setInputValue] = useState('');
 
   const addTag = (raw) => {
-    const tag = raw.trim().toLowerCase().replace(/[^a-z0-9+#.\-]/g, '');
+    const tag = raw.trim().toLowerCase().replace(/[^a-z0-9+#.-]/g, '');
     if (tag && !tags.includes(tag) && tags.length < 10) {
       onChange([...tags, tag]);
     }
@@ -168,7 +165,6 @@ function TagInput({ tags, onChange }) {
   );
 }
 
-// ── Radar logo animation ──────────────────────────────────────────────────────
 function RadarLogo() {
   return (
     <div className="relative w-14 h-14 mx-auto mb-6">
@@ -191,7 +187,6 @@ function RadarLogo() {
   );
 }
 
-// ── Login form ────────────────────────────────────────────────────────────────
 function LoginForm({ onSwitch, onSuccess }) {
   const { login, isLoading } = useAuth();
 
@@ -304,7 +299,6 @@ function LoginForm({ onSwitch, onSuccess }) {
   );
 }
 
-// ── Register form ─────────────────────────────────────────────────────────────
 function RegisterForm({ onSwitch, onSuccess }) {
   const { register, isLoading } = useAuth();
 
@@ -493,7 +487,6 @@ function RegisterForm({ onSwitch, onSuccess }) {
   );
 }
 
-// ── Page root ─────────────────────────────────────────────────────────────────
 export default function LoginPage() {
   const navigate      = useNavigate();
   const [searchParams] = useSearchParams();

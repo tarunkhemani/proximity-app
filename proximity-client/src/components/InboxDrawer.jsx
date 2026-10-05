@@ -20,7 +20,6 @@ import { useSocket } from '../context/SocketContext';
 import { useAuth }   from '../context/AuthContext';
 import api           from '../lib/api';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const s = Math.floor(diff / 1000);
@@ -41,7 +40,6 @@ function formatPreview(message, isMine) {
   return `${prefix}${content.slice(0, 55)}${content.length > 55 ? '…' : ''}`;
 }
 
-// ── Connection request card ────────────────────────────────────────────────────
 function RequestCard({ request, onAccept, onDecline, isActing }) {
   return (
     <motion.div
@@ -138,7 +136,6 @@ function RequestCard({ request, onAccept, onDecline, isActing }) {
   );
 }
 
-// ── Conversation row ───────────────────────────────────────────────────────────
 function ConversationRow({ conversation, currentUserId, onOpen }) {
   const { otherUser, lastMessage, unreadCount, roomId } = conversation;
   const isMine = lastMessage?.senderId?.toString() === currentUserId?.toString();
@@ -192,8 +189,7 @@ function ConversationRow({ conversation, currentUserId, onOpen }) {
   );
 }
 
-// ── Empty state ────────────────────────────────────────────────────────────────
-function EmptyState({ icon: Icon, title, body }) {
+function EmptyState({ title, body }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-3 text-center px-6">
       <div className="w-14 h-14 rounded-2xl bg-radar-elevated border border-radar-border flex items-center justify-center">
@@ -207,7 +203,6 @@ function EmptyState({ icon: Icon, title, body }) {
   );
 }
 
-// ── Tab button ─────────────────────────────────────────────────────────────────
 function TabButton({ active, onClick, children, badge }) {
   return (
     <button
@@ -230,9 +225,7 @@ function TabButton({ active, onClick, children, badge }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
-// ─────────────────────────────────────────────────────────────────────────────
 export default function InboxDrawer({ isOpen, onClose }) {
   const navigate     = useNavigate();
   const { user }     = useAuth();
@@ -243,23 +236,19 @@ export default function InboxDrawer({ isOpen, onClose }) {
     onEvent,
   } = useSocket();
 
-  // ── Tab state ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState('requests');
 
-  // ── Conversations state ────────────────────────────────────────────────────
   const [conversations,      setConversations]      = useState([]);
   const [isLoadingConvos,    setIsLoadingConvos]    = useState(false);
   const [convoError,         setConvoError]         = useState(null);
   const [lastFetchedAt,      setLastFetchedAt]      = useState(null);
 
-  // ── Per-request acting state ───────────────────────────────────────────────
   // Tracks which request IDs are in the middle of an accept/decline action
   // so we can show a spinner on the right card without blocking the others.
   const [actingOn, setActingOn] = useState(new Set());
 
   const hasFetchedRef = useRef(false);
 
-  // ── Fetch conversations when Messages tab is opened ────────────────────────
   const fetchConversations = useCallback(async () => {
     setIsLoadingConvos(true);
     setConvoError(null);
@@ -289,7 +278,6 @@ export default function InboxDrawer({ isOpen, onClose }) {
     }
   }, [isOpen, activeTab, fetchConversations]);
 
-  // ── Live inbox updates: refresh conversations on new chat:message ─────────
   // When a new message arrives while the drawer is open, refetch the inbox
   // so the preview and unread count stay current.
   useEffect(() => {
@@ -303,7 +291,6 @@ export default function InboxDrawer({ isOpen, onClose }) {
     return cleanup;
   }, [isOpen, onEvent, fetchConversations, lastFetchedAt]);
 
-  // ── Update conversation list when a new connection is accepted ────────────
   useEffect(() => {
     if (!isOpen) return;
     const cleanup = onEvent('connect:accepted', () => {
@@ -312,14 +299,12 @@ export default function InboxDrawer({ isOpen, onClose }) {
     return cleanup;
   }, [isOpen, onEvent, fetchConversations]);
 
-  // ── Switch to requests tab automatically when a new request arrives ────────
   useEffect(() => {
     if (isOpen && pendingIncomingRequests.length > 0) {
       setActiveTab('requests');
     }
   }, [isOpen, pendingIncomingRequests.length]);
 
-  // ── Handle accept ─────────────────────────────────────────────────────────
   const handleAccept = useCallback(async (fromUserId, messageId) => {
     setActingOn((prev) => new Set([...prev, messageId]));
     try {
@@ -339,7 +324,6 @@ export default function InboxDrawer({ isOpen, onClose }) {
     }
   }, [acceptConnectionRequest, fetchConversations]);
 
-  // ── Handle decline ────────────────────────────────────────────────────────
   const handleDecline = useCallback((fromUserId, messageId) => {
     setActingOn((prev) => new Set([...prev, messageId]));
     declineConnectionRequest(fromUserId, messageId);
@@ -353,13 +337,11 @@ export default function InboxDrawer({ isOpen, onClose }) {
     }, 400);
   }, [declineConnectionRequest]);
 
-  // ── Navigate to chat ──────────────────────────────────────────────────────
   const handleOpenConversation = useCallback((roomId) => {
     onClose();
     navigate(`/chat/${roomId}`);
   }, [navigate, onClose]);
 
-  // ── Close on Escape ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -367,13 +349,10 @@ export default function InboxDrawer({ isOpen, onClose }) {
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
 
-  // ── Unread totals for tab badges ──────────────────────────────────────────
   const requestBadge = pendingIncomingRequests.length;
   const messageBadge = conversations.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
 
-  // ─────────────────────────────────────────────────────────────────────────
   // RENDER
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <AnimatePresence>
       {isOpen && (
@@ -403,7 +382,6 @@ export default function InboxDrawer({ isOpen, onClose }) {
             aria-modal="true"
             aria-label="Inbox"
           >
-            {/* ── Header ─────────────────────────────────────────────── */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-radar-border flex-shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-beacon/10 border border-beacon/20 flex items-center justify-center">
@@ -441,7 +419,6 @@ export default function InboxDrawer({ isOpen, onClose }) {
               </div>
             </div>
 
-            {/* ── Tabs ───────────────────────────────────────────────── */}
             <div className="flex border-b border-radar-border flex-shrink-0 px-2">
               <TabButton
                 active={activeTab === 'requests'}
@@ -459,7 +436,6 @@ export default function InboxDrawer({ isOpen, onClose }) {
               </TabButton>
             </div>
 
-            {/* ── Tab content ────────────────────────────────────────── */}
             <div className="flex-1 overflow-y-auto">
               <AnimatePresence mode="wait" initial={false}>
 
@@ -558,7 +534,6 @@ export default function InboxDrawer({ isOpen, onClose }) {
               </AnimatePresence>
             </div>
 
-            {/* ── Footer hint ─────────────────────────────────────────── */}
             <div className="flex-shrink-0 px-5 py-3 border-t border-radar-border">
               <p className="text-[10px] text-white/20 text-center leading-relaxed">
                 Connection requests expire when the sender's beacon turns off

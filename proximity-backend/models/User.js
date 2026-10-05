@@ -28,7 +28,7 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password is required'],
       minlength: [8, 'Password must be at least 8 characters'],
-      select: false, // never returned in queries unless explicitly requested with .select('+password')
+      select: false,
     },
 
     avatar: {
@@ -40,7 +40,6 @@ const UserSchema = new mongoose.Schema(
       },
     },
 
-    // ── Profile fields shown to nearby users ────────────────────────────────
     bio: {
       type: String,
       trim: true,
@@ -58,7 +57,6 @@ const UserSchema = new mongoose.Schema(
       },
     },
 
-    // ── Beacon / visibility state ─────────────────────────────────────────────
     // isVisible: the master switch — users are invisible by default.
     // They must explicitly opt in via the beacon toggle in the UI.
     isVisible: {
@@ -66,10 +64,6 @@ const UserSchema = new mongoose.Schema(
       default: false,
     },
 
-    // beaconExpiresAt: when the beacon auto-shuts off.
-    // Checked in the $geoNear aggregation pipeline — expired beacons are
-    // excluded from proximity results even if isVisible is still true
-    // (handles edge cases where the server-side timeout didn't fire).
     beaconExpiresAt: {
       type: Date,
       default: null,
@@ -84,7 +78,6 @@ const UserSchema = new mongoose.Schema(
       max: [480, 'Maximum beacon duration is 8 hours'],
     },
 
-    // ── Connection tracking ───────────────────────────────────────────────────
     // Accepted connections — used to skip re-sending connection requests
     // and to populate a "my network" list. Stored as ObjectId refs.
     connections: [
@@ -103,7 +96,6 @@ const UserSchema = new mongoose.Schema(
       },
     ],
 
-    // ── Account metadata ──────────────────────────────────────────────────────
     isActive: {
       type: Boolean,
       default: true,
@@ -136,10 +128,6 @@ const UserSchema = new mongoose.Schema(
   }
 );
 
-// ── Indexes ───────────────────────────────────────────────────────────────────
-// email is already indexed via `unique: true`.
-// Index on isVisible + beaconExpiresAt accelerates the aggregation pipeline's
-// $match stage that filters for active beacon users.
 UserSchema.index({ isVisible: 1, beaconExpiresAt: 1 });
 
 // Partial index: only index documents where isVisible is true.
@@ -152,7 +140,6 @@ UserSchema.index(
   }
 );
 
-// ── Pre-save middleware ────────────────────────────────────────────────────────
 // Hash the password before saving. Only runs when password is new or modified
 // (prevents re-hashing an already-hashed password on unrelated updates).
 UserSchema.pre('save', async function (next) {
@@ -166,8 +153,6 @@ UserSchema.pre('save', async function (next) {
     next(err);
   }
 });
-
-// ── Instance methods ──────────────────────────────────────────────────────────
 
 // comparePassword: called during login to verify the supplied plaintext password
 // against the stored hash. Always use this — never compare directly.
@@ -209,8 +194,6 @@ UserSchema.methods.toPublicProfile = function () {
     tags: this.tags,
   };
 };
-
-// ── Static methods ────────────────────────────────────────────────────────────
 
 // findByEmail: used in login and registration flows.
 // Explicitly selects password so comparePassword() can be called on the result.

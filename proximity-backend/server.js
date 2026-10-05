@@ -17,8 +17,6 @@ import messageRoutes from './routes/messages.js';
 import userRoutes from './routes/users.js';
 import compression from 'compression';
 
-
-// ─── Validate required env vars at startup ───────────────────────────────────
 const REQUIRED_ENV = ['PORT', 'MONGO_URI', 'REDIS_URL', 'JWT_SECRET', 'CLIENT_URL'];
 const missing = REQUIRED_ENV.filter((key) => !process.env[key]);
 if (missing.length > 0) {
@@ -28,20 +26,14 @@ if (missing.length > 0) {
 
 const PORT = process.env.PORT || 5000;
 
-// ─── Express app ─────────────────────────────────────────────────────────────
 const app = express();
 
 // Security headers — disable the default 'X-Powered-By: Express' header
 app.use(helmet());
 app.disable('x-powered-by');
 
-// ── After app.disable('x-powered-by') ─────────────────────────────────────
-// Trust the first proxy (nginx) so req.ip and secure cookies work correctly
-// when the app runs behind a reverse proxy. Without this, Express sees the
-// proxy IP instead of the real client IP, which breaks rate limiting.
 app.set('trust proxy', 1);
 
-// ── After app.set('trust proxy', 1) ───────────────────────────────────────
 // Compress all responses > 1kb. Reduces bandwidth by ~70% for JSON payloads.
 // Must be registered before routes so all responses are compressed.
 app.use(compression({
@@ -81,7 +73,6 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use('/api/messages', messageRoutes);
 app.use('/api/users', userRoutes);
 
-// ─── HTTP rate limiting (REST endpoints) ─────────────────────────────────────
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 200,                   // max requests per window per IP
@@ -91,13 +82,8 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 
-// ─── REST API Routes (stubs — filled in Phase 3) ─────────────────────────────
-// app.use('/api/auth', authRoutes);
-// app.use('/api/users', userRoutes);
-// app.use('/api/messages', messageRoutes);
 app.use('/api/auth', authRoutes);
 
-// ─── Health check (useful for Docker / load balancer probes) ─────────────────
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
@@ -106,12 +92,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ─── 404 handler ─────────────────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
 });
 
-// ─── Global error handler ─────────────────────────────────────────────────────
 // Must be defined last, after all routes
 app.use((err, req, res, next) => {
   // CORS errors from the cors() middleware
@@ -124,10 +108,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ─── HTTP server (shared between Express & Socket.io) ────────────────────────
 const httpServer = createServer(app);
 
-// ─── Socket.io ───────────────────────────────────────────────────────────────
 const io = new Server(httpServer, {
   cors: {
     origin: allowedOrigins,
@@ -148,7 +130,6 @@ const io = new Server(httpServer, {
   },
 });
 
-// ─── Startup sequence ─────────────────────────────────────────────────────────
 // Order matters: DB and Redis must be ready before we start accepting connections
 async function start() {
   try {
@@ -158,9 +139,6 @@ async function start() {
     // 2. Connect Redis pub/sub clients (both needed for the adapter)
     await connectRedis();
 
-    // 3. Attach Redis adapter to Socket.io
-    //    This makes events emitted on one Node process visible to all other
-    //    processes — critical for horizontal scaling behind a load balancer
     io.adapter(createAdapter(pubClient, subClient));
     console.log('[socket.io] Redis adapter attached');
 
@@ -180,7 +158,6 @@ async function start() {
 
 start();
 
-// ─── Graceful shutdown ────────────────────────────────────────────────────────
 // Ensures in-flight requests complete and connections close cleanly before exit.
 // Required for zero-downtime deploys (PM2, Docker, Kubernetes).
 async function gracefulShutdown(signal) {

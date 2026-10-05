@@ -1,9 +1,5 @@
 import Redis from 'ioredis';
 
-// ─── Shared ioredis options ───────────────────────────────────────────────────
-// Both pubClient and subClient use the same base config.
-// We create two separate clients because a Redis client in subscriber mode
-// cannot issue regular commands (GET, SET, DEL) — they are dedicated channels.
 const redisOptions = {
   // Retry connection with exponential backoff, capped at 30 seconds.
   // Without this, a brief Redis blip would kill the whole server.
@@ -35,7 +31,6 @@ const redisOptions = {
   lazyConnect: true, // don't auto-connect on instantiation; we call .connect() manually
 };
 
-// ─── Client factory ───────────────────────────────────────────────────────────
 function createRedisClient(clientName) {
   const url = process.env.REDIS_URL;
 
@@ -73,13 +68,11 @@ function createRedisClient(clientName) {
   return client;
 }
 
-// ─── Export two dedicated clients ────────────────────────────────────────────
 // pubClient  — used for: SET, GET, DEL, SETEX (presence keys, socket ID map)
 // subClient  — used by the Socket.io Redis adapter exclusively for SUBSCRIBE
 export const pubClient = createRedisClient('pub');
 export const subClient = createRedisClient('sub');
 
-// ─── Connection helper ────────────────────────────────────────────────────────
 // Called once from server.js during the startup sequence.
 // Resolves when both clients are ready, rejects if either fails.
 export async function connectRedis() {
@@ -87,7 +80,6 @@ export async function connectRedis() {
   console.log('[redis] Both pub/sub clients connected');
 }
 
-// ─── Helper utilities ─────────────────────────────────────────────────────────
 // Centralise key naming so a typo in one place doesn't silently create a
 // different key family. Import these helpers anywhere you need Redis.
 
@@ -105,7 +97,6 @@ export const RedisKeys = {
   locationRateLimit: (userId) => `ratelimit:location:${userId}`,
 };
 
-// ─── Atomic set-with-expiry wrapper ───────────────────────────────────────────
 // A thin convenience wrapper around SETEX so callers don't spread magic
 // numbers for TTLs across the codebase.
 export async function setPresence(userId, ttlSeconds = 30) {

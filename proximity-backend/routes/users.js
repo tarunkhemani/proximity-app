@@ -21,7 +21,6 @@ const writeLimiter = rateLimit({
   message: { error: 'Too many profile updates. Please wait.' },
 });
 
-// ── GET /api/users/me ──────────────────────────────────────────────────────────
 // Returns the authenticated user's full profile including connection count
 // and current beacon state. Used by ProfilePage on mount.
 router.get('/me', async (req, res) => {
@@ -61,16 +60,11 @@ router.get('/me', async (req, res) => {
   }
 });
 
-// ── PATCH /api/users/me ────────────────────────────────────────────────────────
-// Updates editable profile fields. Password changes are a separate endpoint
-// (below) to enforce the current-password requirement.
-// Accepted fields: name, bio, tags, avatar
 router.patch('/me', writeLimiter, async (req, res) => {
   try {
     const { name, bio, tags, avatar } = req.body;
     const updates = {};
 
-    // ── Validate and collect allowed fields ─────────────────────────────────
     const errors = {};
 
     if (name !== undefined) {
@@ -123,7 +117,6 @@ router.patch('/me', writeLimiter, async (req, res) => {
       { new: true, runValidators: true }
     ).select('-password -refreshToken');
 
-    console.log(`[users] Profile updated for ${req.user._id}`);
     return res.status(200).json({ user: updated, message: 'Profile updated.' });
   } catch (err) {
     if (err.name === 'ValidationError') {
@@ -135,7 +128,6 @@ router.patch('/me', writeLimiter, async (req, res) => {
   }
 });
 
-// ── POST /api/users/me/change-password ────────────────────────────────────────
 // Requires the current password before setting a new one.
 router.post('/me/change-password', writeLimiter, async (req, res) => {
   try {
@@ -162,7 +154,6 @@ router.post('/me/change-password', writeLimiter, async (req, res) => {
     user.password = newPassword; // pre-save hook hashes it
     await user.save();
 
-    console.log(`[users] Password changed for ${req.user._id}`);
     return res.status(200).json({ message: 'Password updated successfully.' });
   } catch (err) {
     console.error('[users/change-password]', err.message);
@@ -170,7 +161,6 @@ router.post('/me/change-password', writeLimiter, async (req, res) => {
   }
 });
 
-// ── GET /api/users/connections ─────────────────────────────────────────────────
 // Returns the authenticated user's accepted connections with public profiles.
 router.get('/connections', async (req, res) => {
   try {
@@ -194,7 +184,6 @@ router.get('/connections', async (req, res) => {
   }
 });
 
-// ── GET /api/users/:id ─────────────────────────────────────────────────────────
 // Returns any user's public profile. Used when viewing another user's card.
 // Only exposes safe fields — never password, email, refreshToken.
 router.get('/:id', async (req, res) => {
@@ -231,7 +220,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ── DELETE /api/users/me ───────────────────────────────────────────────────────
 // Soft-deletes the account. Sets isActive: false and clears sensitive fields.
 // A hard-delete job can clean up MongoDB documents later.
 router.delete('/me', writeLimiter, async (req, res) => {
@@ -261,7 +249,6 @@ router.delete('/me', writeLimiter, async (req, res) => {
     // Immediately remove their location document
     await Location.deleteOne({ userId: req.user._id });
 
-    console.log(`[users] Account deactivated: ${req.user._id}`);
     return res.status(200).json({ message: 'Account deleted.' });
   } catch (err) {
     console.error('[users/delete]', err.message);

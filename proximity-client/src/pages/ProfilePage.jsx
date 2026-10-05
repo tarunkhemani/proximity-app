@@ -27,7 +27,6 @@ import { useAuth }   from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import api           from '../lib/api';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function getInitials(name) {
   if (!name) return '?';
   return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
@@ -44,11 +43,8 @@ function timeAgo(dateStr) {
   return `${Math.floor(d / 365)} years ago`;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // SUB-COMPONENTS
-// ─────────────────────────────────────────────────────────────────────────────
 
-// ── Avatar ────────────────────────────────────────────────────────────────────
 function Avatar({ name, avatar, size = 80 }) {
   return (
     <div
@@ -69,8 +65,7 @@ function Avatar({ name, avatar, size = 80 }) {
   );
 }
 
-// ── Section card ──────────────────────────────────────────────────────────────
-function SectionCard({ title, icon: Icon, children, action }) {
+function SectionCard({ title, children, action }) {
   return (
     <div className="card overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-radar-border">
@@ -87,7 +82,6 @@ function SectionCard({ title, icon: Icon, children, action }) {
   );
 }
 
-// ── Inline editable field ──────────────────────────────────────────────────────
 function EditableField({ label, value, onSave, type = 'text', maxLength, placeholder, multiline }) {
   const [editing,    setEditing]    = useState(false);
   const [draft,      setDraft]      = useState(value ?? '');
@@ -170,7 +164,6 @@ function EditableField({ label, value, onSave, type = 'text', maxLength, placeho
   );
 }
 
-// ── Tag editor ────────────────────────────────────────────────────────────────
 function TagEditor({ tags, onSave }) {
   const [editing,  setEditing]  = useState(false);
   const [draft,    setDraft]    = useState([...(tags ?? [])]);
@@ -181,7 +174,7 @@ function TagEditor({ tags, onSave }) {
   useEffect(() => { if (!editing) setDraft([...(tags ?? [])]); }, [tags, editing]);
 
   const addTag = (raw) => {
-    const tag = raw.trim().toLowerCase().replace(/[^a-z0-9+#.\-]/g, '');
+    const tag = raw.trim().toLowerCase().replace(/[^a-z0-9+#.-]/g, '');
     if (tag && !draft.includes(tag) && draft.length < 10) {
       setDraft((p) => [...p, tag]);
     }
@@ -261,7 +254,6 @@ function TagEditor({ tags, onSave }) {
   );
 }
 
-// ── Change password form ───────────────────────────────────────────────────────
 function ChangePasswordForm({ onClose }) {
   const [current,  setCurrent]  = useState('');
   const [next,     setNext]     = useState('');
@@ -342,7 +334,6 @@ function ChangePasswordForm({ onClose }) {
   );
 }
 
-// ── Delete account dialog ──────────────────────────────────────────────────────
 function DeleteAccountDialog({ onConfirm, onCancel, isDeleting }) {
   const [password, setPassword] = useState('');
   const [show,     setShow]     = useState(false);
@@ -404,7 +395,6 @@ function DeleteAccountDialog({ onConfirm, onCancel, isDeleting }) {
   );
 }
 
-// ── Connection card ────────────────────────────────────────────────────────────
 function ConnectionCard({ connection, currentUserId }) {
   const navigate  = useNavigate();
   const roomId    = [connection._id.toString(), currentUserId].sort().join('_');
@@ -448,15 +438,12 @@ function ConnectionCard({ connection, currentUserId }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE
-// ─────────────────────────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const navigate  = useNavigate();
   const { user, logout, updateUserState } = useAuth();
   const { stopBeacon, beaconActive }      = useSocket();
 
-  // ── State ──────────────────────────────────────────────────────────────────
   const [profile,         setProfile]         = useState(null);
   const [connections,     setConnections]      = useState([]);
   const [isLoadingInit,   setIsLoadingInit]    = useState(true);
@@ -466,7 +453,6 @@ export default function ProfilePage() {
   const [isDeleting,      setIsDeleting]       = useState(false);
   const [saveSuccess,     setSaveSuccess]      = useState('');
 
-  // ── Load profile and connections on mount ─────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
@@ -492,13 +478,11 @@ export default function ProfilePage() {
     return () => { cancelled = true; };
   }, []);
 
-  // ── Flash a success message for 2.5 seconds ────────────────────────────────
   const flashSuccess = useCallback((msg) => {
     setSaveSuccess(msg);
     setTimeout(() => setSaveSuccess(''), 2500);
   }, []);
 
-  // ── Generic field saver ────────────────────────────────────────────────────
   // Returns { error } on failure or null on success.
   const saveField = useCallback(async (updates) => {
     try {
@@ -512,7 +496,6 @@ export default function ProfilePage() {
     }
   }, [updateUserState, flashSuccess]);
 
-  // ── Delete account ─────────────────────────────────────────────────────────
   const handleDelete = useCallback(async (password) => {
     setIsDeleting(true);
     try {
@@ -527,16 +510,13 @@ export default function ProfilePage() {
     }
   }, [stopBeacon, logout, navigate]);
 
-  // ── Logout ─────────────────────────────────────────────────────────────────
   const handleLogout = useCallback(async () => {
     stopBeacon();
     await logout();
     navigate('/login', { replace: true });
   }, [stopBeacon, logout, navigate]);
 
-  // ─────────────────────────────────────────────────────────────────────────
   // LOADING / ERROR STATES
-  // ─────────────────────────────────────────────────────────────────────────
   if (isLoadingInit) {
     return (
       <div className="min-h-screen bg-radar-bg flex flex-col items-center justify-center gap-4">
@@ -561,9 +541,7 @@ export default function ProfilePage() {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // RENDER
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-radar-bg flex flex-col">
       {/* Header */}
@@ -597,7 +575,6 @@ export default function ProfilePage() {
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-md mx-auto px-4 py-6 flex flex-col gap-5">
 
-          {/* ── Hero card ──────────────────────────────────────────────── */}
           <div className="card p-6 flex flex-col items-center gap-4 text-center">
             <Avatar name={profile?.name} avatar={profile?.avatar} size={88} />
 
@@ -627,7 +604,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* ── Profile info (editable) ────────────────────────────────── */}
           <SectionCard title="Profile info" icon={User}>
             <div className="flex flex-col gap-5">
               <EditableField
@@ -654,7 +630,6 @@ export default function ProfilePage() {
             </div>
           </SectionCard>
 
-          {/* ── Connections ────────────────────────────────────────────── */}
           <SectionCard
             title="Connections"
             icon={Users}
@@ -684,7 +659,6 @@ export default function ProfilePage() {
             )}
           </SectionCard>
 
-          {/* ── Account & security ─────────────────────────────────────── */}
           <SectionCard title="Account & security" icon={Lock}>
             <div className="flex flex-col gap-4">
               {/* Member since */}
